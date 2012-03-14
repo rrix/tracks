@@ -24,7 +24,8 @@ class ContextsController < ApplicationController
     respond_to do |format|
       format.html &render_contexts_html
       format.m    &render_contexts_mobile
-      format.xml  { render :xml => @all_contexts.to_xml( :except => :user_id ) }
+      format.xml  { render :xml  => @all_contexts.to_xml(  :except => :user_id ) }
+      format.json { render :json => @all_contexts.to_json( :except => :user_id ) }
       format.rss  &render_contexts_rss_feed
       format.atom &render_contexts_atom_feed
       format.text do
@@ -40,14 +41,16 @@ class ContextsController < ApplicationController
     if @context.nil?
       respond_to do |format|
         format.html { render :text => 'Context not found', :status => 404 }
-        format.xml  { render :xml => '<error>Context not found</error>', :status => 404 }
+        format.xml  { render :xml  => '<error>Context not found</error>',  :status => 404 }
+        format.json { render :json => '{ "error" : "Context not found" }', :status => 404 }
       end
     else
       @page_title = "TRACKS::Context: #{@context.name}"
       respond_to do |format|
         format.html
         format.m    &render_context_mobile
-        format.xml  { render :xml => @context.to_xml( :except => :user_id ) }
+        format.xml  { render :xml  => @context.to_xml(  :except => :user_id ) }
+        format.json { render :json => @context.to_json( :except => :user_id ) }
       end
     end
   end
@@ -80,6 +83,15 @@ class ContextsController < ApplicationController
           render_failure "Expected post format is valid xml like so: <request><context><name>context name</name></context></request>.", 400
         elsif @context.new_record?
           render_failure @context.errors.to_xml, 409
+        else
+          head :created, :location => context_url(@context)
+        end
+      end
+      format.json do
+        if @context.new_record? && params_are_invalid
+          render_failure "Expected post format is valid xml like so: <request><context><name>context name</name></context></request>.", 400
+        elsif @context.new_record?
+          render_failure @context.errors.to_json, 409
         else
           head :created, :location => context_url(@context)
         end
@@ -128,6 +140,13 @@ class ContextsController < ApplicationController
             render :text => "Error on update: #{@context.errors.full_messages.inject("") {|v, e| v + e + " " }}", :status => 409
           end
         }
+        format.json {
+          if @saved
+            render :json => @context.to_json( :except => :user_id )
+          else
+            render :text => "Error on update: #{@context.errors.full_messages.inject("") {|v, e| v + e + " " }}", :status => 409
+          end
+        }
       end
     end
   end
@@ -152,7 +171,8 @@ class ContextsController < ApplicationController
         @down_count = current_user.contexts.size
         update_state_counts
       end
-      format.xml { render :text => "Deleted context #{@context.name}" }
+      format.xml  { render :text => "Deleted context #{@context.name}" }
+      format.json { render :text => "Deleted context #{@context.name}" }
     end
   end
 
