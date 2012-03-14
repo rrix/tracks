@@ -9,7 +9,8 @@ class NotesController < ApplicationController
     @source_view = 'note_list'
     respond_to do |format|
       format.html
-      format.xml { render :xml => @all_notes.to_xml( :except => :user_id )  }
+      format.xml  { render :xml  => @all_notes.to_xml(  :except => :user_id )  }
+      format.json { render :json => @all_notes.to_json( :except => :user_id )  }
     end
   end
 
@@ -31,6 +32,13 @@ class NotesController < ApplicationController
     respond_to do |format|
       format.js 
       format.xml do
+        if @saved
+          head :created, :location => note_url(@note), :text => "new note with id #{@note.id}"
+        else
+          render_failure @note.errors.full_messages.join(', ')
+        end
+      end
+      format.json do
         if @saved
           head :created, :location => note_url(@note), :text => "new note with id #{@note.id}"
         else
