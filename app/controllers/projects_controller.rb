@@ -24,7 +24,8 @@ class ProjectsController < ApplicationController
       respond_to do |format|
         format.html  &render_projects_html
         format.m     &render_projects_mobile
-        format.xml   { render :xml => @projects.to_xml( :except => :user_id )  }
+        format.xml   { render :xml  => @projects.to_xml(  :except => :user_id )  }
+        format.json  { render :json => @projects.to_json( :except => :user_id )  }
         format.rss   &render_rss_feed
         format.atom  &render_atom_feed
         format.text  &render_text_feed
@@ -116,6 +117,15 @@ class ProjectsController < ApplicationController
           xml.done { @done.each { |child| child.to_xml(:builder => xml, :skip_instruct => true) } }
         }
       }
+      format.json {
+        p = @project
+        p[:not_done] = @not_done
+        p[:deferred] = @deferred
+        p[:pending]  = @pending
+        p[:done]     = @done
+
+        render :json => p.to_json(:except => :user_id)
+      }
     end
   end
 
@@ -154,6 +164,9 @@ class ProjectsController < ApplicationController
         else
           head :created, :location => project_url(@project), :text => @project.id
         end
+      end
+      format.json do
+        head :created, :location => project_url(@project), :text => @project.id
       end
       format.html {redirect_to :action => 'index'}
     end
@@ -224,6 +237,13 @@ class ProjectsController < ApplicationController
           render :text => "Error on update: #{@project.errors.full_messages.inject("") {|v, e| v + e + " " }}", :status => 409
         end
       }
+      format.json {
+        if @saved
+          render :json => @project.to_json( :except => :user_id )
+        else
+          render :text => "Error on update: #{@project.errors.full_messages.inject("") {|v, e| v + e + " " }}", :status => 409
+        end
+      }
     end
 
   end
@@ -243,7 +263,8 @@ class ProjectsController < ApplicationController
         @down_count = current_user.projects.size
         update_state_counts
       }
-      format.xml { render :text => "Deleted project #{@project.name}" }
+      format.xml  { render :text => "Deleted project #{@project.name}" }
+      format.json { render :text => "Deleted project #{@project.name}" }
     end
   end
 
