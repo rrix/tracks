@@ -26,7 +26,8 @@ class TodosController < ApplicationController
     respond_to do |format|
       format.html  &render_todos_html
       format.m     &render_todos_mobile
-      format.xml   { render :xml => @todos.to_xml( *to_xml_params ) }
+      format.xml   { render :xml  => @todos.to_xml(  *to_xml_params ) }
+      format.json  { render :json => @todos.to_json( *to_xml_params ) }
       format.rss   &render_rss_feed
       format.atom  &render_atom_feed
       format.text  &render_text_feed
@@ -154,6 +155,13 @@ class TodosController < ApplicationController
             render :xml => @todo.errors.to_xml, :status => 422
           end
         end
+        format.json do
+          if @saved
+            head :created, :location => todo_url(@todo)
+          else
+            render :json => @todo.errors.to_json, :status => 422
+          end
+        end
       end
     end
   end
@@ -232,6 +240,13 @@ class TodosController < ApplicationController
           render :xml => @todos[0].errors.to_xml, :status => 422
         end
       end
+      format.json do
+        if @saved
+          head :created, :location => context_url(@todos[0].context)
+        else
+          render :json => @todos[0].errors.to_json, :status => 422
+        end
+      end
     end
   end
 
@@ -255,7 +270,8 @@ class TodosController < ApplicationController
     @todo = current_user.todos.find(params['id'])
     respond_to do |format|
       format.m { render :action => 'show' }
-      format.xml { render :xml => @todo.to_xml( *to_xml_params ) }
+      format.xml  { render :xml  => @todo.to_xml(  *to_xml_params ) }
+      format.json { render :json => @todo.to_json( *to_xml_params ) }
     end
   end
 
@@ -336,7 +352,8 @@ class TodosController < ApplicationController
         end
         render
       end
-      format.xml { render :xml => @todo.to_xml( *to_xml_params ) }
+      format.xml  { render :xml  => @todo.to_xml(  *to_xml_params ) }
+      format.json { render :json => @todo.to_json( *to_xml_params ) }
       format.html do
         if @saved
           # TODO: I think this will work, but can't figure out how to test it
@@ -371,7 +388,8 @@ class TodosController < ApplicationController
     @saved = true # cannot determine error
     respond_to do |format|
       format.js
-      format.xml { render :xml => @todo.to_xml( *to_xml_params ) }
+      format.xml  { render :xml  => @todo.to_xml(  *to_xml_params ) }
+      format.json { render :json => @todo.to_json( *to_xml_params ) }
       format.html { redirect_to request.referrer}
       format.m {
         if cookies[:mobile_url]
@@ -402,7 +420,8 @@ class TodosController < ApplicationController
 
     respond_to do |format|
       format.js  { render :action => :update }
-      format.xml { render :xml => @todo.to_xml( *to_xml_params ) }
+      format.xml  { render :xml  => @todo.to_xml(  *to_xml_params ) }
+      format.json { render :json => @todo.to_json( *to_xml_params ) }
     end
   end
 
@@ -442,7 +461,8 @@ class TodosController < ApplicationController
         @status_message = t('todos.added_new_project') + ' / ' + @status_message if @new_project_created
         @status_message = t('todos.added_new_context') + ' / ' + @status_message if @new_context_created
       }
-      format.xml { render :xml => @todo.to_xml( *to_xml_params ) }
+      format.xml  { render :xml  => @todo.to_xml(  *to_xml_params ) }
+      format.json { render :json => @todo.to_json( *to_xml_params ) }
       format.m do
         if @saved
           if cookies[:mobile_url]
@@ -520,7 +540,8 @@ class TodosController < ApplicationController
         render
       end
 
-      format.xml { render :text => '200 OK. Action deleted.', :status => 200 }
+      format.xml  { render :text => '200 OK. Action deleted.', :status => 200 }
+      format.json { render :text => '200 OK. Action deleted.', :status => 200 }
 
     end
   end
@@ -538,7 +559,8 @@ class TodosController < ApplicationController
 
     respond_to do |format|
       format.html
-      format.xml { render :xml => completed_todos.to_xml( *to_xml_params ) }
+      format.xml  { render :xml  => completed_todos.to_xml(  *to_xml_params ) }
+      format.json { render :json => completed_todos.to_json( *to_xml_params ) }
     end
   end
 
@@ -556,7 +578,8 @@ class TodosController < ApplicationController
 
     @contexts_to_show = @contexts = current_user.contexts.find(:all)
 
-    includes = params[:format]=='xml' ? [:context, :project] : Todo::DEFAULT_INCLUDES
+    includes = params[:format]=='xml'  ? [:context, :project] : Todo::DEFAULT_INCLUDES
+    includes = params[:format]=='json' ? [:context, :project] : Todo::DEFAULT_INCLUDES
 
     @not_done_todos = current_user.todos.deferred(:include => includes) + current_user.todos.pending(:include => includes)
     @down_count = @count = @not_done_todos.size
@@ -564,7 +587,8 @@ class TodosController < ApplicationController
     respond_to do |format|
       format.html
       format.m { render :action => 'mobile_list_deferred' }
-      format.xml { render :xml => @not_done_todos.to_xml( *to_xml_params ) }
+      format.xml  { render :xml  => @not_done_todos.to_xml(  *to_xml_params ) }
+      format.json { render :json => @not_done_todos.to_json( *to_xml_params ) }
     end
   end
 
@@ -771,6 +795,10 @@ class TodosController < ApplicationController
         @due_all = current_user.todos.not_completed.are_due.find(:all, :order => "due")
         render :xml => @due_all.to_xml( *to_xml_params )
       }
+      format.json {
+        @due_all = current_user.todos.not_completed.are_due.find(:all, :order => "due")
+        render :json => @due_all.to_json( *to_xml_params )
+      }
     end
   end
 
@@ -779,6 +807,9 @@ class TodosController < ApplicationController
     respond_to do |format|
       format.xml {
         render :xml => @hidden.to_xml( *to_xml_params )
+      }
+      format.json {
+        render :json => @hidden.to_json( *to_xml_params )
       }
     end
   end
