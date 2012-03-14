@@ -10,7 +10,7 @@ class NotesController < ApplicationController
     respond_to do |format|
       format.html
       format.xml  { render :xml  => @all_notes.to_xml(  :except => :user_id )  }
-      format.json { render :json => @all_notes.to_json( :except => :user_id )  }
+      format.json { render :json => @all_notes.to_json( :except => :user_id ), :callback => params[:callback]  }
     end
   end
 

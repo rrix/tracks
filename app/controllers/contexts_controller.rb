@@ -25,7 +25,7 @@ class ContextsController < ApplicationController
       format.html &render_contexts_html
       format.m    &render_contexts_mobile
       format.xml  { render :xml  => @all_contexts.to_xml(  :except => :user_id ) }
-      format.json { render :json => @all_contexts.to_json( :except => :user_id ) }
+      format.json { render :json => @all_contexts.to_json( :except => :user_id ), :callback => params[:callback] }
       format.rss  &render_contexts_rss_feed
       format.atom &render_contexts_atom_feed
       format.text do
@@ -50,7 +50,7 @@ class ContextsController < ApplicationController
         format.html
         format.m    &render_context_mobile
         format.xml  { render :xml  => @context.to_xml(  :except => :user_id ) }
-        format.json { render :json => @context.to_json( :except => :user_id ) }
+        format.json { render :json => @context.to_json( :except => :user_id ), :callback => params[:callback] }
       end
     end
   end
@@ -142,7 +142,7 @@ class ContextsController < ApplicationController
         }
         format.json {
           if @saved
-            render :json => @context.to_json( :except => :user_id )
+            render :json => @context.to_json( :except => :user_id ), :callback => params[:callback]
           else
             render :text => "Error on update: #{@context.errors.full_messages.inject("") {|v, e| v + e + " " }}", :status => 409
           end

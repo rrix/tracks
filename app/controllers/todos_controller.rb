@@ -27,7 +27,7 @@ class TodosController < ApplicationController
       format.html  &render_todos_html
       format.m     &render_todos_mobile
       format.xml   { render :xml  => @todos.to_xml(  *to_xml_params ) }
-      format.json  { render :json => @todos.to_json( *to_xml_params ) }
+      format.json  { render :json => @todos.to_json( *to_xml_params ), :callback => params[:callback] }
       format.rss   &render_rss_feed
       format.atom  &render_atom_feed
       format.text  &render_text_feed
@@ -271,7 +271,7 @@ class TodosController < ApplicationController
     respond_to do |format|
       format.m { render :action => 'show' }
       format.xml  { render :xml  => @todo.to_xml(  *to_xml_params ) }
-      format.json { render :json => @todo.to_json( *to_xml_params ) }
+      format.json { render :json => @todo.to_json( *to_xml_params ), :callback => params[:callback] }
     end
   end
 
@@ -353,7 +353,7 @@ class TodosController < ApplicationController
         render
       end
       format.xml  { render :xml  => @todo.to_xml(  *to_xml_params ) }
-      format.json { render :json => @todo.to_json( *to_xml_params ) }
+      format.json { render :json => @todo.to_json( *to_xml_params ), :callback => params[:callback] }
       format.html do
         if @saved
           # TODO: I think this will work, but can't figure out how to test it
@@ -389,7 +389,7 @@ class TodosController < ApplicationController
     respond_to do |format|
       format.js
       format.xml  { render :xml  => @todo.to_xml(  *to_xml_params ) }
-      format.json { render :json => @todo.to_json( *to_xml_params ) }
+      format.json { render :json => @todo.to_json( *to_xml_params ), :callback => params[:callback] }
       format.html { redirect_to request.referrer}
       format.m {
         if cookies[:mobile_url]
@@ -421,7 +421,7 @@ class TodosController < ApplicationController
     respond_to do |format|
       format.js  { render :action => :update }
       format.xml  { render :xml  => @todo.to_xml(  *to_xml_params ) }
-      format.json { render :json => @todo.to_json( *to_xml_params ) }
+      format.json { render :json => @todo.to_json( *to_xml_params ), :callback => params[:callback] }
     end
   end
 
@@ -462,7 +462,7 @@ class TodosController < ApplicationController
         @status_message = t('todos.added_new_context') + ' / ' + @status_message if @new_context_created
       }
       format.xml  { render :xml  => @todo.to_xml(  *to_xml_params ) }
-      format.json { render :json => @todo.to_json( *to_xml_params ) }
+      format.json { render :json => @todo.to_json( *to_xml_params ), :callback => params[:callback] }
       format.m do
         if @saved
           if cookies[:mobile_url]
@@ -560,7 +560,7 @@ class TodosController < ApplicationController
     respond_to do |format|
       format.html
       format.xml  { render :xml  => completed_todos.to_xml(  *to_xml_params ) }
-      format.json { render :json => completed_todos.to_json( *to_xml_params ) }
+      format.json { render :json => completed_todos.to_json( *to_xml_params ), :callback => params[:callback] }
     end
   end
 
@@ -588,7 +588,7 @@ class TodosController < ApplicationController
       format.html
       format.m { render :action => 'mobile_list_deferred' }
       format.xml  { render :xml  => @not_done_todos.to_xml(  *to_xml_params ) }
-      format.json { render :json => @not_done_todos.to_json( *to_xml_params ) }
+      format.json { render :json => @not_done_todos.to_json( *to_xml_params ), :callback => params[:callback] }
     end
   end
 
@@ -797,7 +797,7 @@ class TodosController < ApplicationController
       }
       format.json {
         @due_all = current_user.todos.not_completed.are_due.find(:all, :order => "due")
-        render :json => @due_all.to_json( *to_xml_params )
+        render :json => @due_all.to_json( *to_xml_params ), :callback => params[:callback]
       }
     end
   end
@@ -809,7 +809,7 @@ class TodosController < ApplicationController
         render :xml => @hidden.to_xml( *to_xml_params )
       }
       format.json {
-        render :json => @hidden.to_json( *to_xml_params )
+        render :json => @hidden.to_json( *to_xml_params ), :callback => params[:callback]
       }
     end
   end

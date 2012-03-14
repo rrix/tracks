@@ -25,7 +25,7 @@ class ProjectsController < ApplicationController
         format.html  &render_projects_html
         format.m     &render_projects_mobile
         format.xml   { render :xml  => @projects.to_xml(  :except => :user_id )  }
-        format.json  { render :json => @projects.to_json( :except => :user_id )  }
+        format.json  { render :json => @projects.to_json( :except => :user_id ), :callback => params[:callback]  }
         format.rss   &render_rss_feed
         format.atom  &render_atom_feed
         format.text  &render_text_feed
@@ -124,7 +124,7 @@ class ProjectsController < ApplicationController
         p[:pending]  = @pending
         p[:done]     = @done
 
-        render :json => p.to_json(:except => :user_id)
+        render :json => p.to_json(:except => :user_id), :callback => params[:callback]
       }
     end
   end
@@ -239,7 +239,7 @@ class ProjectsController < ApplicationController
       }
       format.json {
         if @saved
-          render :json => @project.to_json( :except => :user_id )
+          render :json => @project.to_json( :except => :user_id ), :callback => params[:callback]
         else
           render :text => "Error on update: #{@project.errors.full_messages.inject("") {|v, e| v + e + " " }}", :status => 409
         end
