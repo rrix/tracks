@@ -118,6 +118,7 @@ class TodosController < ApplicationController
 
       @todo.reload if @saved
       @todo_was_created_deferred = @todo.deferred?
+      @todo_was_created_blocked = @todo.pending?
 
       respond_to do |format|
         format.html { redirect_to :action => "index" }
@@ -184,32 +185,50 @@ class TodosController < ApplicationController
 
     @sequential = !params[:todos_sequential].blank? && params[:todos_sequential]=='true'
 
-    @todos = []
+    @todos_init = []
     @predecessor = nil
+    validates = true
+    errors = []
+    
+    # first build all todos and check if they would validate on save
     params[:todo][:multiple_todos].split("\n").map do |line|
       unless line.blank?
         @todo = current_user.todos.build(
           :description => line)
         @todo.project_id = @project_id
         @todo.context_id = @context_id
-        @saved = @todo.save
+        validates = false if @todo.invalid?
+        
+        @todos_init << @todo
+      end
+    end
+    
+    # if all todos validate, then save them and add predecessors and tags
+    @todos = []
+    if validates
+      @todos_init.each do |todo|
+        @saved = todo.save
+        validates = validates && @saved
 
         if @predecessor && @saved && @sequential
-          @todo.add_predecessor(@predecessor)
-          @todo.block!
+          todo.add_predecessor(@predecessor)
+          todo.block!
         end
 
         unless (@saved == false) || tag_list.blank?
-          @todo.tag_with(tag_list)
-          @todo.tags.reload
+          todo.tag_with(tag_list)
+          todo.tags.reload
         end
 
-        @todos << @todo
-        @not_done_todos << @todo if @new_context_created
-        @predecessor = @todo
+        @todos << todo
+        @not_done_todos << todo if @new_context_created
+        @predecessor = todo
       end
+    else
+      @todos = @todos_init
+      @saved = false
     end
-
+    
     respond_to do |format|
       format.html { redirect_to :action => "index" }
       format.js do
@@ -219,11 +238,11 @@ class TodosController < ApplicationController
         @initial_context_name = params['default_context_name']
         @initial_project_name = params['default_project_name']
         @initial_tags = params['initial_tag_list']
-        if @todos.size > 0
+        if @saved && @todos.size > 0
           @default_tags = @todos[0].project.default_tags unless @todos[0].project.nil?
         else
-          @multiple_error = t('todos.next_action_needed')
-          @saved = false;
+          @multiple_error = @todos.size > 0 ? "" : t('todos.next_action_needed')
+          @saved = false
           @default_tags = current_user.projects.find_by_name(@initial_project_name).default_tags unless @initial_project_name.blank?
         end
 
@@ -530,7 +549,7 @@ class TodosController < ApplicationController
       format.js do
         if @saved
           determine_down_count
-          if source_view_is_one_of(:todo, :deferred, :project)
+          if source_view_is_one_of(:todo, :deferred, :project, :context)
             determine_remaining_in_context_count(@context_id)
           elsif source_view_is :calendar
             @original_item_due_id = get_due_id_for_calendar(@original_item_due)
@@ -1148,13 +1167,18 @@ class TodosController < ApplicationController
       }
       from.context {
         context = current_user.contexts.find(context_id)
+        @remaining_deferred_or_pending_count = context.todos.deferred_or_blocked.count
 
         remaining_actions_in_context = context.todos(true).active
         remaining_actions_in_context = remaining_actions_in_context.not_hidden if !context.hide?
         @remaining_in_context = remaining_actions_in_context.count
 
-        actions_in_target = current_user.contexts.find(@todo.context_id).todos(true).active
-        actions_in_target = actions_in_target.not_hidden if !context.hide?
+        if @todo_was_deferred_or_blocked
+          actions_in_target = current_user.contexts.find(@todo.context_id).todos(true).active
+          actions_in_target = actions_in_target.not_hidden if !context.hide?
+        else
+          actions_in_target = @todo.context.todos.deferred_or_blocked
+        end
         @target_context_count = actions_in_target.count
       }
     end
@@ -1378,6 +1402,7 @@ class TodosController < ApplicationController
     @original_item_due = @todo.due
     @original_item_due_id = get_due_id_for_calendar(@todo.due)
     @original_item_predecessor_list = @todo.predecessors.map{|t| t.specification}.join(', ')
+    @todo_was_deferred_or_blocked = @todo.deferred? || @todo.pending?
   end
 
   def update_project

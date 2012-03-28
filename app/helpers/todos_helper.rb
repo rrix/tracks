@@ -92,7 +92,7 @@ module TodosHelper
   def remote_mobile_checkbox(todo=@todo)
     form_tag toggle_check_todo_path(@todo, :format => 'm'), :method => :put, :class => "mobile-done", :name => "mobile_complete_#{@todo.id}" do
       check_box_tag('_source_view', 'todo', @todo && @todo.completed?, "onClick" => "document.mobile_complete_#{@todo.id}.submit()")
-    end 
+    end
   end
 
   def date_span(todo=@todo)
@@ -311,7 +311,7 @@ module TodosHelper
 
   def update_needs_to_remove_todo_from_container
     source_view do |page|
-      page.context  { return @context_changed || @todo.deferred? || @todo.pending? || @todo_should_be_hidden }
+      page.context  { return @context_changed || @todo_deferred_state_changed || @todo_pending_state_changed || @todo_should_be_hidden }
       page.project  { return @todo_deferred_state_changed || @todo_pending_state_changed || @project_changed}
       page.deferred { return @context_changed || !(@todo.deferred? || @todo.pending?) }
       page.calendar { return @due_date_changed || !@todo.due }
@@ -339,7 +339,7 @@ module TodosHelper
 
   def append_updated_todo
     source_view do |page|
-      page.context  { return false }
+      page.context  { return @todo_deferred_state_changed || @todo_pending_state_changed }
       page.project  { return @todo_deferred_state_changed || @todo_pending_state_changed }
       page.deferred { return @context_changed && (@todo.deferred? || @todo.pending?) }
       page.calendar { return @due_date_changed && @todo.due }
@@ -370,7 +370,8 @@ module TodosHelper
           @todo_was_blocked_from_active_state ||
           @todo_was_destroyed_from_deferred_state ||
           @todo_was_created_deferred ||
-          @todo_was_blocked_from_completed_state
+          @todo_was_blocked_from_completed_state ||
+          @todo_was_created_blocked
         return "p#{todo.project_id}empty-nd"
       }
       page.tag {
@@ -379,12 +380,30 @@ module TodosHelper
           @todo_was_blocked_from_active_state ||
           @todo_was_destroyed_from_deferred_state ||
           @todo_was_created_deferred ||
-          @todo_was_blocked_from_completed_state
+          @todo_was_blocked_from_completed_state ||
+          @todo_was_created_blocked
         return "hidden-empty-nd" if @todo.hidden?
         return "c#{todo.context_id}empty-nd"
       }
       page.calendar {
+        return "tickler-empty-nd" if
+          @todo_was_deferred_from_active_state ||
+          @todo_was_blocked_from_active_state ||
+          @todo_was_destroyed_from_deferred_state ||
+          @todo_was_created_deferred ||
+          @todo_was_blocked_from_completed_state ||
+          @todo_was_created_blocked
         return "empty_#{@new_due_id}"
+      }
+      page.context {
+        return "tickler-empty-nd" if
+          @todo_was_deferred_from_active_state ||
+          @todo_was_blocked_from_active_state ||
+          @todo_was_destroyed_from_deferred_state ||
+          @todo_was_created_deferred ||
+          @todo_was_blocked_from_completed_state ||
+          @todo_was_created_blocked
+        return "c#{todo.context_id}empty-nd"
       }
     end
 
@@ -417,6 +436,7 @@ module TodosHelper
       }
       page.context  {
         container_id = "c#{@original_item_context_id}empty-nd" if @remaining_in_context == 0
+        container_id = "tickler-empty-nd" if todo_was_removed_from_deferred_or_blocked_container && @remaining_deferred_or_pending_count == 0
         container_id = "empty-d" if @completed_count && @completed_count == 0 && !@todo.completed?
       }
       page.todo     { container_id = "c#{@original_item_context_id}empty-nd" if @remaining_in_context == 0 }
